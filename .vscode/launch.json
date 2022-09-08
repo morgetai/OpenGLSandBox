@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        
+        {
+            "name": "(lldb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/OpenGL-Examples/OpenGlExample",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/OpenGL-Examples",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        }
+        ]
+}

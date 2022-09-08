@@ -1,0 +1,17 @@
+{
+    "name": "opengl-packages",
+    "version": "1.0",
+    "dependencies": [
+        {"name": "opengl"},
+        {"name": "gl3w"},
+        {"name": "glew"},
+        {"name": "glfw3"},
+        {"name": "glm"},
+        {"name": "imgui", "features": [ "glfw-binding","opengl3-binding" ]},
+        {"name": "stb"},
+        {"name": "shaderc"},
+        {"name": "spdlog"},
+        {"name": "spirv-cross"},
+        {"name": "spirv-tools"}
+    ]
+}
