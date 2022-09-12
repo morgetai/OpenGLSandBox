@@ -21,8 +21,7 @@ public:
     void Shutdown();
 
     void BeginScene(const GLCore::Utils::OrthographicCamera &camera, const glm::mat4 &transform);
-    // void BeginScene(const EditorCamera &camera);
-    //void BeginScene(const OrthographicCamera &camera); // TODO: Remove
+
     void EndScene();
     void Flush();
 
@@ -59,8 +58,6 @@ public:
     void DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t indexCount = 0);
     void DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount);
 
-    //void SetLineWidth(float width);
-
     // Stats
     struct Statistics
     {
@@ -83,7 +80,6 @@ private:
         float TilingFactor;
 
         // Editor-only
-        int EntityID;
     };
 
     struct CircleVertex
@@ -95,7 +91,6 @@ private:
         float Fade;
 
         // Editor-only
-        int EntityID;
     };
 
     struct LineVertex
@@ -104,7 +99,6 @@ private:
         glm::vec4 Color;
 
         // Editor-only
-        int EntityID;
     };
 
     struct CameraData
@@ -158,7 +152,7 @@ private:
         //
         Renderer2D::Statistics Stats;
         CameraData CameraBuffer;
-        OpenGLUniformBuffer CameraUniformBuffer;
+        GLUniformBlock CameraUniformBuffer;
     };
 
     std::unique_ptr<Renderer2DData> m_renderer_data;

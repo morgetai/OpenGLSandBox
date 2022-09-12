@@ -1,5 +1,6 @@
 #include "Renderer/OpenGLTexture.h"
 #include "Util/OpenGLDebug.h"
+#include "Core/MyAssert.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -10,14 +11,27 @@ OpenGLTexture2D::OpenGLTexture2D(uint32_t width, uint32_t height)
     m_InternalFormat = GL_RGBA8;
     m_DataFormat = GL_RGBA;
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
-    glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
+    GLCall(glGenTextures(1, &m_RendererID));
+    
+    GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererID));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, width, height, 0, m_DataFormat, GL_UNSIGNED_BYTE, nullptr));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 
-    glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //
+
+    // glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
+    // glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
+
+    // glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 OpenGLTexture2D::OpenGLTexture2D(const std::string &path)
@@ -61,22 +75,9 @@ OpenGLTexture2D::OpenGLTexture2D(const std::string &path)
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 
-		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
-        GLCall(glTexSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data));
-
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data));
+        GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data));
 		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-        //
-
-        // glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
-        // glTextureStorage2D(m_RendererID, 1, internalFormat, m_Width, m_Height);
-
-        // glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        // glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        
 
         stbi_image_free(data);
     }
@@ -90,10 +91,15 @@ OpenGLTexture2D::~OpenGLTexture2D()
 void OpenGLTexture2D::SetData(void *data, uint32_t size)
 {
     uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
-    glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
+	ASSERT_CUSTOM(size == m_Width * m_Height * bpp, "Data must be entire texture!");
+
+    GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererID));
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
+    GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
 void OpenGLTexture2D::Bind(uint32_t slot) const
 {
-    glBindTextureUnit(slot, m_RendererID);
+    GLCall(glActiveTexture(GL_TEXTURE0 + slot));
+    GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererID));
 }

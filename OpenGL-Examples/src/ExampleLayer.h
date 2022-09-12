@@ -25,7 +25,8 @@ private:
 	OpenGLTexture2D m_Pic1, m_Pic2;
 	
 	GLuint m_QuadVA, m_QuadVB, m_QuadIB, m_Pic1_id, m_Pic2_id;
-	float m_quad_pos[2] {-1.5, -0.5};
+	//float m_quad_pos[2] {-1.5, -0.5};
+	glm::vec2 m_quad_pos{-0.5, -0.5};
 
 	glm::vec4 m_SquareBaseColor = { 0.8f, 0.2f, 0.3f, 1.0f };
 	glm::vec4 m_SquareAlternateColor = { 0.2f, 0.3f, 0.8f, 1.0f };

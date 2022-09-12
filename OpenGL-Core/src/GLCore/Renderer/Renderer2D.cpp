@@ -1,18 +1,24 @@
 #include "Renderer2D.h"
 #include "Renderer/Buffer.h"
+#include "Util/OpenGLDebug.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <numeric>
 
-// static Renderer2DData s_Data;
-
-Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
+Renderer2D::Renderer2DData::Renderer2DData() : 
+QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
 											   WhiteTexture(1, 1),
 											   LineVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
 											   CircleVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
 											   QuadShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Quad.glsl")),
 											   CircleShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Circle.glsl")),
 											   LineShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Line.glsl")),
-											   CameraUniformBuffer(sizeof(Renderer2D::CameraData), 0)
+											   CameraUniformBuffer(sizeof(Renderer2D::CameraData), 0, "Camera")
 {
+	CameraUniformBuffer.Bind(QuadShader.GetRendererID());
+	CameraUniformBuffer.Bind(CircleShader.GetRendererID());
+	CameraUniformBuffer.Bind(LineShader.GetRendererID());
+
+
 	uint32_t quadIndices[Renderer2D::Renderer2DData::MaxIndices];
 	uint32_t offset{0};
 	for (uint32_t i = 0; i < Renderer2D::Renderer2DData::MaxIndices; i += 6)
@@ -28,64 +34,48 @@ Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Rend
 		offset += 4;
 	}
 
+	std::array<int, 16> samplers{};
+    std::iota(std::begin(samplers), std::end(samplers), 0);
+
+	QuadShader.Bind();
+	QuadShader.UploadUniformIntArray( "u_Textures", samplers.data(), samplers.size());
+	QuadShader.Unbind();
+
 	QuadIndexBuffer = std::make_unique<OpenGLIndexBuffer>(quadIndices, Renderer2D::Renderer2DData::MaxIndices);
 	QuadVertexArray.SetIndexBuffer(*QuadIndexBuffer);
 }
 
 void Renderer2D::Init()
 {
-	// m_renderer_data->QuadVertexArray =OpenGLVertexArray;
 
-	// m_renderer_data->QuadVertexBuffer = VertexBuffer::Create(m_renderer_data->MaxVertices * sizeof(QuadVertex));
+	m_renderer_data = std::make_unique<Renderer2DData>();
+
+	//Quad
 	m_renderer_data->QuadVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_Position"},
 												 {ShaderDataType::Float4, "a_Color"},
 												 {ShaderDataType::Float2, "a_TexCoord"},
 												 {ShaderDataType::Float, "a_TexIndex"},
-												 {ShaderDataType::Float, "a_TilingFactor"},
-												 {ShaderDataType::Int, "a_EntityID"}});
+												 {ShaderDataType::Float, "a_TilingFactor"}});
 	m_renderer_data->QuadVertexArray.AddVertexBuffer(m_renderer_data->QuadVertexBuffer);
 
-	// m_renderer_data->QuadVertexBufferBase = new QuadVertex[m_renderer_data->MaxVertices];
-
-	// uint32_t *quadIndices = new uint32_t[m_renderer_data->MaxIndices];
-
-	// delete[] quadIndices;
-
 	// Circles
-	// m_renderer_data->CircleVertexArray = VertexArray::Create();
-
-	// m_renderer_data->CircleVertexBuffer = VertexBuffer::Create(m_renderer_data->MaxVertices * sizeof(CircleVertex));
 	m_renderer_data->CircleVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_WorldPosition"},
 												   {ShaderDataType::Float3, "a_LocalPosition"},
 												   {ShaderDataType::Float4, "a_Color"},
 												   {ShaderDataType::Float, "a_Thickness"},
-												   {ShaderDataType::Float, "a_Fade"},
-												   {ShaderDataType::Int, "a_EntityID"}});
+												   {ShaderDataType::Float, "a_Fade"}});
 	m_renderer_data->CircleVertexArray.AddVertexBuffer(m_renderer_data->CircleVertexBuffer);
 	m_renderer_data->CircleVertexArray.SetIndexBuffer(*m_renderer_data->QuadIndexBuffer); // Use quad IB
-	// m_renderer_data->CircleVertexBufferBase = new CircleVertex[m_renderer_data->MaxVertices];
+
 
 	// Lines
-	// m_renderer_data->LineVertexArray = VertexArray::Create();
-
-	// m_renderer_data->LineVertexBuffer = VertexBuffer::Create(m_renderer_data->MaxVertices * sizeof(LineVertex));
 	m_renderer_data->LineVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_Position"},
-												 {ShaderDataType::Float4, "a_Color"},
-												 {ShaderDataType::Int, "a_EntityID"}});
+												 {ShaderDataType::Float4, "a_Color"}});
 	m_renderer_data->LineVertexArray.AddVertexBuffer(m_renderer_data->LineVertexBuffer);
-	// m_renderer_data->LineVertexBufferBase = new LineVertex[m_renderer_data->MaxVertices];
 
-	// m_renderer_data->WhiteTexture = Texture2D::Create(1, 1);
+	//white texture
 	uint32_t whiteTextureData = 0xffffffff;
 	m_renderer_data->WhiteTexture.SetData(&whiteTextureData, sizeof(uint32_t));
-
-	int32_t samplers[Renderer2D::Renderer2DData::MaxTextureSlots];
-	for (uint32_t i = 0; i < Renderer2D::Renderer2DData::MaxTextureSlots; i++)
-		samplers[i] = i;
-
-	// m_renderer_data->QuadShader = Shader::Create("assets/shaders/Renderer2D_Quad.glsl");
-	// m_renderer_data->CircleShader = Shader::Create("assets/shaders/Renderer2D_Circle.glsl");
-	// m_renderer_data->LineShader = Shader::Create("assets/shaders/Renderer2D_Line.glsl");
 
 	// Set first texture slot to 0
 	m_renderer_data->TextureSlots[0] = &m_renderer_data->WhiteTexture;
@@ -95,7 +85,10 @@ void Renderer2D::Init()
 	m_renderer_data->QuadVertexPositions[2] = {0.5f, 0.5f, 0.0f, 1.0f};
 	m_renderer_data->QuadVertexPositions[3] = {-0.5f, 0.5f, 0.0f, 1.0f};
 
-	// m_renderer_data->CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 0);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_ALPHA_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void Renderer2D::Shutdown()
@@ -116,7 +109,7 @@ void Renderer2D::Shutdown()
 void Renderer2D::BeginScene(const GLCore::Utils::OrthographicCamera &camera, const glm::mat4 &transform)
 {
 
-	m_renderer_data->CameraBuffer.ViewProjection = camera.GetProjectionMatrix() * glm::inverse(transform);
+	m_renderer_data->CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix() * glm::inverse(transform);
 	m_renderer_data->CameraUniformBuffer.SetData(&m_renderer_data->CameraBuffer, sizeof(Renderer2D::CameraData));
 
 	StartBatch();
@@ -155,8 +148,7 @@ void Renderer2D::Flush()
 {
 	if (m_renderer_data->QuadIndexCount)
 	{
-		// uint32_t dataSize = (uint32_t)((uint8_t *)m_renderer_data->QuadVertexBufferPtr - (uint8_t *)m_renderer_data->QuadVertexBufferBase);
-		uint32_t dataSize = sizeof(Renderer2D::LineVertex) *
+		uint32_t dataSize = sizeof(Renderer2D::QuadVertex) *
 							static_cast<uint32_t>(std::distance(m_renderer_data->QuadVertexBufferBase.begin(), m_renderer_data->QuadVertexBufferPtr));
 		m_renderer_data->QuadVertexBuffer.SetData(m_renderer_data->QuadVertexBufferBase.data(), dataSize);
 
@@ -171,8 +163,7 @@ void Renderer2D::Flush()
 
 	if (m_renderer_data->CircleIndexCount)
 	{
-		// uint32_t dataSize = (uint32_t)((uint8_t *)m_renderer_data->CircleVertexBufferPtr - (uint8_t *)m_renderer_data->CircleVertexBufferBase);
-		uint32_t dataSize = sizeof(Renderer2D::LineVertex) *
+		uint32_t dataSize = sizeof(Renderer2D::CircleVertex) *
 							static_cast<uint32_t>(std::distance(m_renderer_data->CircleVertexBufferBase.begin(), m_renderer_data->CircleVertexBufferPtr));
 		m_renderer_data->CircleVertexBuffer.SetData(m_renderer_data->CircleVertexBufferBase.data(), dataSize);
 
@@ -183,7 +174,6 @@ void Renderer2D::Flush()
 
 	if (m_renderer_data->LineVertexCount)
 	{
-		// uint32_t dataSize = (uint32_t)((uint8_t *)m_renderer_data->LineVertexBufferPtr - (uint8_t *)m_renderer_data->LineVertexBufferBase);
 		uint32_t dataSize = sizeof(Renderer2D::LineVertex) *
 							static_cast<uint32_t>(std::distance(m_renderer_data->LineVertexBufferBase.begin(), m_renderer_data->LineVertexBufferPtr));
 		m_renderer_data->LineVertexBuffer.SetData(m_renderer_data->LineVertexBufferBase.data(), dataSize);
@@ -243,7 +233,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, in
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
+		//m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 
@@ -287,7 +277,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &tex
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
+		//m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 
@@ -336,7 +326,7 @@ void Renderer2D::DrawCircle(const glm::mat4 &transform, const glm::vec4 &color, 
 		m_renderer_data->CircleVertexBufferPtr->Color = color;
 		m_renderer_data->CircleVertexBufferPtr->Thickness = thickness;
 		m_renderer_data->CircleVertexBufferPtr->Fade = fade;
-		m_renderer_data->CircleVertexBufferPtr->EntityID = entityID;
+		//m_renderer_data->CircleVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->CircleVertexBufferPtr++;
 	}
 
@@ -349,12 +339,12 @@ void Renderer2D::DrawLine(const glm::vec3 &p0, glm::vec3 &p1, const glm::vec4 &c
 {
 	m_renderer_data->LineVertexBufferPtr->Position = p0;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
+	//m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexBufferPtr->Position = p1;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
+	//m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexCount += 2;
@@ -431,7 +421,7 @@ void Renderer2D::DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t inde
 {
 	vertexArray.Bind();
 	uint32_t count = indexCount ? indexCount : vertexArray.GetIndexBuffer()->GetCount();
-	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+	GLCall(glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr));
 }
 void Renderer2D::DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount)
 {

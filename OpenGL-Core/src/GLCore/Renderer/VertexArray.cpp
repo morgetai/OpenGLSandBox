@@ -1,5 +1,6 @@
 #include "Renderer/VertexArray.h"
 #include <GL/glew.h>
+#include "Util/OpenGLDebug.h"
 
 static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
 {
@@ -34,7 +35,7 @@ static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
 
 OpenGLVertexArray::OpenGLVertexArray()
 {
-    glCreateVertexArrays(1, &m_RendererID);
+    GLCall(glGenVertexArrays(1, &m_RendererID));
 }
 
 OpenGLVertexArray::~OpenGLVertexArray()
@@ -44,7 +45,7 @@ OpenGLVertexArray::~OpenGLVertexArray()
 
 void OpenGLVertexArray::Bind() const
 {
-    glBindVertexArray(m_RendererID);
+    GLCall(glBindVertexArray(m_RendererID));
 }
 
 void OpenGLVertexArray::Unbind() const

@@ -9,25 +9,6 @@
 namespace GLCore::Utils
 {
 
-	class Shader
-	{
-	public:
-		~Shader();
-
-		GLuint GetRendererID() { return m_RendererID; }
-
-		static Shader *FromGLSLTextFiles(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
-
-	private:
-		Shader() = default;
-
-		void LoadFromGLSLTextFiles(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
-		GLuint CompileShader(GLenum type, const std::string &source);
-
-	private:
-		GLuint m_RendererID;
-	};
-
 	class OpenGLShader
 	{
 	public:
@@ -37,6 +18,7 @@ namespace GLCore::Utils
 
 		void Bind() const;
 		void Unbind() const;
+		GLuint GetRendererID() const {return m_RendererID;}
 
 		void SetInt(const std::string &name, int value);
 		void SetIntArray(const std::string &name, int *values, uint32_t count);
@@ -63,18 +45,12 @@ namespace GLCore::Utils
 		std::string ReadFile(const std::string &filepath);
 		std::unordered_map<GLenum, std::string> PreProcess(const std::string &source);
 
-		//void CompileOrGetVulkanBinaries(const std::unordered_map<GLenum, std::string> &shaderSources);
-		//void CompileOrGetOpenGLBinaries(const std::unordered_map<GLenum, std::string> &shaderSources);
 		void CreateProgram();
-		//void Reflect(GLenum stage, const std::vector<uint32_t> &shaderData);
 
 	private:
 		uint32_t m_RendererID;
 		std::string m_FilePath;
 		std::string m_Name;
-
-		//std::unordered_map<GLenum, std::vector<uint32_t>> m_VulkanSPIRV;
-		//std::unordered_map<GLenum, std::vector<uint32_t>> m_OpenGLSPIRV;
 
 		std::unordered_map<GLenum, std::string> m_OpenGLSourceCode;
 	};

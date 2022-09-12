@@ -23,13 +23,14 @@ uint32_t ShaderDataTypeSize(ShaderDataType type);
 
 struct BufferElement
 {
-    std::string Name;
-    ShaderDataType Type;
-    uint32_t Size;
-    size_t Offset;
-    bool Normalized;
+    std::string Name{};
+    ShaderDataType Type{};
+    uint32_t Size{};
+    size_t Offset{};
+    bool Normalized{};
 
     BufferElement() = default;
+    BufferElement(const BufferElement&) = default;
 
     BufferElement(ShaderDataType type, const std::string &name, bool normalized = false)
         : Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized)
@@ -73,8 +74,7 @@ public:
     using iterator = std::vector<BufferElement>::iterator;
     using const_iterator = std::vector<BufferElement>::const_iterator;
 
-    BufferLayout() {}
-
+    BufferLayout() = default;
     BufferLayout(std::initializer_list<BufferElement> elements)
         : m_Elements(elements)
     {
@@ -104,5 +104,5 @@ private:
 
 private:
     std::vector<BufferElement> m_Elements;
-    uint32_t m_Stride = 0;
+    uint32_t m_Stride {0};
 };
