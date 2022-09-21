@@ -17,7 +17,6 @@ set (PROJECT_SOURCES
     #Core
     src/GLCore.h
     src/GLCoreUtils.h
-    #platform
     #GLCore
     src/GLCore/Core/Application.cpp
     src/GLCore/Core/Application.h
@@ -41,15 +40,15 @@ set (PROJECT_SOURCES
     src/GLCore/Events/KeyEvent.h
     src/GLCore/Events/MouseEvent.h
     #imgui
-    #src/GLCore/ImGui/ImGuiBuild.cpp
     src/GLCore/ImGui/ImGuiLayer.cpp
     src/GLCore/ImGui/ImGuiLayer.h
     #Util
     src/GLCore/Util/OpenGLDebug.cpp
     src/GLCore/Util/OpenGLDebug.h
+    src/GLCore/Util/ProjectionCamera.cpp
+    src/GLCore/Util/ProjectionCamera.h
     src/GLCore/Util/OrthographicCamera.cpp
     src/GLCore/Util/OrthographicCamera.h
-    src/GLCore/Util/OrthographicCameraController.cpp
     src/GLCore/Util/OrthographicCameraController.h
     #Renderer
     src/GLCore/Renderer/Shader.cpp
@@ -89,10 +88,8 @@ PRIVATE
 
 target_include_directories(${PROJECT_NAME}  
 PUBLIC 
-    #"${CMAKE_CURRENT_SOURCE_DIR}/glad/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore"
-    #"/Users/andriihridin/Documents/Programming/OpenGlSandbox/vcpkg/installed/x64-osx/include/"
 PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore/Core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore/Events"

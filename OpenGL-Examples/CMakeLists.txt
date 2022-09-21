@@ -10,9 +10,6 @@ set (PROJECT_SOURCES
     src/ExampleApp.cpp
     src/ExampleLayer.h
     src/ExampleLayer.cpp)
-    #src/Renderer.h
-    #src/Renderer.cpp)
-
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 target_link_libraries(${PROJECT_NAME} 

@@ -4,8 +4,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <numeric>
 
-Renderer2D::Renderer2DData::Renderer2DData() : 
-QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
+namespace
+{
+	constexpr uint32_t QUAD_INDICES = 6;
+	constexpr uint32_t QUAD_VERTICES = 4;
+}
+
+Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
 											   WhiteTexture(1, 1),
 											   LineVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
 											   CircleVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
@@ -18,10 +23,9 @@ QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::Qu
 	CameraUniformBuffer.Bind(CircleShader.GetRendererID());
 	CameraUniformBuffer.Bind(LineShader.GetRendererID());
 
-
 	uint32_t quadIndices[Renderer2D::Renderer2DData::MaxIndices];
 	uint32_t offset{0};
-	for (uint32_t i = 0; i < Renderer2D::Renderer2DData::MaxIndices; i += 6)
+	for (uint32_t i = 0; i < Renderer2D::Renderer2DData::MaxIndices; i += QUAD_INDICES)
 	{
 		quadIndices[i + 0] = offset + 0;
 		quadIndices[i + 1] = offset + 1;
@@ -31,14 +35,14 @@ QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::Qu
 		quadIndices[i + 4] = offset + 3;
 		quadIndices[i + 5] = offset + 0;
 
-		offset += 4;
+		offset += QUAD_VERTICES;
 	}
 
-	std::array<int, 16> samplers{};
-    std::iota(std::begin(samplers), std::end(samplers), 0);
+	std::array<int, MaxTextureSlots> samplers{};
+	std::iota(std::begin(samplers), std::end(samplers), 0);
 
 	QuadShader.Bind();
-	QuadShader.UploadUniformIntArray( "u_Textures", samplers.data(), samplers.size());
+	QuadShader.UploadUniformIntArray("u_Textures", samplers.data(), samplers.size());
 	QuadShader.Unbind();
 
 	QuadIndexBuffer = std::make_unique<OpenGLIndexBuffer>(quadIndices, Renderer2D::Renderer2DData::MaxIndices);
@@ -50,7 +54,7 @@ void Renderer2D::Init()
 
 	m_renderer_data = std::make_unique<Renderer2DData>();
 
-	//Quad
+	// Quad
 	m_renderer_data->QuadVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_Position"},
 												 {ShaderDataType::Float4, "a_Color"},
 												 {ShaderDataType::Float2, "a_TexCoord"},
@@ -67,13 +71,12 @@ void Renderer2D::Init()
 	m_renderer_data->CircleVertexArray.AddVertexBuffer(m_renderer_data->CircleVertexBuffer);
 	m_renderer_data->CircleVertexArray.SetIndexBuffer(*m_renderer_data->QuadIndexBuffer); // Use quad IB
 
-
 	// Lines
 	m_renderer_data->LineVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_Position"},
 												 {ShaderDataType::Float4, "a_Color"}});
 	m_renderer_data->LineVertexArray.AddVertexBuffer(m_renderer_data->LineVertexBuffer);
 
-	//white texture
+	// white texture
 	uint32_t whiteTextureData = 0xffffffff;
 	m_renderer_data->WhiteTexture.SetData(&whiteTextureData, sizeof(uint32_t));
 
@@ -106,11 +109,13 @@ void Renderer2D::Shutdown()
 	StartBatch();
 } */
 
-void Renderer2D::BeginScene(const GLCore::Utils::OrthographicCamera &camera, const glm::mat4 &transform)
+void Renderer2D::BeginScene(const glm::mat4 &viewproj, const glm::mat4 &transform)
 {
 
-	m_renderer_data->CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix() * glm::inverse(transform);
+	m_renderer_data->CameraBuffer.ViewProjection = viewproj;
 	m_renderer_data->CameraUniformBuffer.SetData(&m_renderer_data->CameraBuffer, sizeof(Renderer2D::CameraData));
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	StartBatch();
 }
@@ -126,7 +131,6 @@ void Renderer2D::BeginScene(const GLCore::Utils::OrthographicCamera &camera, con
 
 void Renderer2D::EndScene()
 {
-
 	Flush();
 }
 
@@ -217,8 +221,6 @@ void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size, cons
 
 void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, int entityID)
 {
-
-	constexpr size_t quadVertexCount = 4;
 	const float textureIndex = 0.0f; // White Texture
 	constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
 	const float tilingFactor = 1.0f;
@@ -226,25 +228,24 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, in
 	if (m_renderer_data->QuadIndexCount >= Renderer2DData::MaxIndices)
 		NextBatch();
 
-	for (size_t i = 0; i < quadVertexCount; i++)
+	for (size_t i = 0; i < QUAD_VERTICES; i++)
 	{
 		m_renderer_data->QuadVertexBufferPtr->Position = transform * m_renderer_data->QuadVertexPositions[i];
 		m_renderer_data->QuadVertexBufferPtr->Color = color;
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		//m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
+		// m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 
-	m_renderer_data->QuadIndexCount += 6;
+	m_renderer_data->QuadIndexCount += QUAD_INDICES;
 
 	m_renderer_data->Stats.QuadCount++;
 }
 
 void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor, int entityID)
 {
-	constexpr size_t quadVertexCount = 4;
 	constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
 
 	if (m_renderer_data->QuadIndexCount >= Renderer2DData::MaxIndices)
@@ -270,20 +271,98 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &tex
 		m_renderer_data->TextureSlotIndex++;
 	}
 
-	for (size_t i = 0; i < quadVertexCount; i++)
+	for (size_t i = 0; i < QUAD_VERTICES; i++)
 	{
 		m_renderer_data->QuadVertexBufferPtr->Position = transform * m_renderer_data->QuadVertexPositions[i];
 		m_renderer_data->QuadVertexBufferPtr->Color = tintColor;
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		//m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
+		// m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 
-	m_renderer_data->QuadIndexCount += 6;
+	m_renderer_data->QuadIndexCount += QUAD_INDICES;
 
 	m_renderer_data->Stats.QuadCount++;
+}
+
+void Renderer2D::DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color)
+{
+	glm::mat4 front = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 back = glm::translate(glm::mat4(1.0f), {position.x, position.y, position.z - size.z}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 left = glm::translate(glm::mat4(1.0f), {position.x - size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 right = glm::translate(glm::mat4(1.0f), {position.x + size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 top = glm::translate(glm::mat4(1.0f), {position.x, position.y + size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 bottom = glm::translate(glm::mat4(1.0f), {position.x, position.y - size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+
+	DrawQuad(front, color);
+	DrawQuad(back, color);
+	DrawQuad(left, color);
+	DrawQuad(right, color);
+	DrawQuad(top, color);
+	DrawQuad(bottom, color);
+}
+
+void Renderer2D::DrawCube(const glm::vec3 &position, const glm::vec3 &size, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
+{
+	glm::mat4 front = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 back = glm::translate(glm::mat4(1.0f), {position.x, position.y, position.z - size.z}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 left = glm::translate(glm::mat4(1.0f), {position.x - size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 right = glm::translate(glm::mat4(1.0f), {position.x + size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 top = glm::translate(glm::mat4(1.0f), {position.x, position.y + size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 bottom = glm::translate(glm::mat4(1.0f), {position.x, position.y - size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+
+	DrawQuad(front, texture);
+	DrawQuad(back, texture);
+	DrawQuad(left, texture);
+	DrawQuad(right, texture);
+	DrawQuad(top, texture);
+	DrawQuad(bottom, texture);
+}
+
+void Renderer2D::DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const glm::vec4 &color)
+{
+	glm::mat4 all_axis_rot =
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1, 0, 0)) * // X axis
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0, 1, 0)) * // Y axis
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));	 // Z axis
+
+	glm::mat4 front = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 back = glm::translate(glm::mat4(1.0f), {position.x, position.y, position.z - size.z}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 left = glm::translate(glm::mat4(1.0f), {position.x - size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 right = glm::translate(glm::mat4(1.0f), {position.x + size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 top = glm::translate(glm::mat4(1.0f), {position.x, position.y + size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 bottom = glm::translate(glm::mat4(1.0f), {position.x, position.y - size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+
+	DrawQuad(all_axis_rot * front, color);
+	DrawQuad(all_axis_rot * back, color);
+	DrawQuad(all_axis_rot * left, color);
+	DrawQuad(all_axis_rot * right, color);
+	DrawQuad(all_axis_rot * top, color);
+	DrawQuad(all_axis_rot * bottom, color);
+}
+
+void Renderer2D::DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
+{
+	glm::mat4 all_axis_rot =
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1, 0, 0)) * // X axis
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0, 1, 0)) * // Y axis
+		glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));	 // Z axis
+
+	glm::mat4 front = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 back = glm::translate(glm::mat4(1.0f), {position.x, position.y, position.z - size.z}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 left = glm::translate(glm::mat4(1.0f), {position.x - size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 right = glm::translate(glm::mat4(1.0f), {position.x + size.x * 0.5, position.y, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 top = glm::translate(glm::mat4(1.0f), {position.x, position.y + size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+	glm::mat4 bottom = glm::translate(glm::mat4(1.0f), {position.x, position.y - size.y * 0.5, position.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size);
+
+	DrawQuad(all_axis_rot * front, texture, tilingFactor, tintColor);
+	DrawQuad(all_axis_rot * back, texture, tilingFactor, tintColor);
+	DrawQuad(all_axis_rot * left, texture, tilingFactor, tintColor);
+	DrawQuad(all_axis_rot * right, texture, tilingFactor, tintColor);
+	DrawQuad(all_axis_rot * top, texture, tilingFactor, tintColor);
+	DrawQuad(all_axis_rot * bottom, texture, tilingFactor, tintColor);
 }
 
 void Renderer2D::DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color)
@@ -326,7 +405,7 @@ void Renderer2D::DrawCircle(const glm::mat4 &transform, const glm::vec4 &color, 
 		m_renderer_data->CircleVertexBufferPtr->Color = color;
 		m_renderer_data->CircleVertexBufferPtr->Thickness = thickness;
 		m_renderer_data->CircleVertexBufferPtr->Fade = fade;
-		//m_renderer_data->CircleVertexBufferPtr->EntityID = entityID;
+		// m_renderer_data->CircleVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->CircleVertexBufferPtr++;
 	}
 
@@ -339,12 +418,12 @@ void Renderer2D::DrawLine(const glm::vec3 &p0, glm::vec3 &p1, const glm::vec4 &c
 {
 	m_renderer_data->LineVertexBufferPtr->Position = p0;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	//m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
+	// m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexBufferPtr->Position = p1;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	//m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
+	// m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexCount += 2;

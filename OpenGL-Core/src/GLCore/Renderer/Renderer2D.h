@@ -9,18 +9,13 @@
 #include <array>
 #include <memory>
 
-struct SceneData
-{
-    glm::mat4 ViewProjectionMatrix;
-};
-
 class Renderer2D
 {
 public:
     void Init();
     void Shutdown();
 
-    void BeginScene(const GLCore::Utils::OrthographicCamera &camera, const glm::mat4 &transform);
+    void BeginScene(const glm::mat4 &viewproj, const glm::mat4 &transform);
 
     void EndScene();
     void Flush();
@@ -33,6 +28,11 @@ public:
 
     void DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, int entityID = -1);
     void DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f), int entityID = -1);
+
+    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color);
+    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3& rotation, const glm::vec4 &color);
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3& rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
 
     void DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
     void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
@@ -55,9 +55,6 @@ public:
     void SetClearColor(const glm::vec4 &color);
     void Clear();
 
-    void DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t indexCount = 0);
-    void DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount);
-
     // Stats
     struct Statistics
     {
@@ -71,6 +68,9 @@ public:
     Statistics GetStats();
 
 private:
+    void DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t indexCount = 0);
+    void DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount);
+
     struct QuadVertex
     {
         glm::vec3 Position;
@@ -113,7 +113,7 @@ private:
         static constexpr uint32_t MaxIndices = MaxQuads * 6;
         static constexpr uint32_t MaxTextureSlots = 16; // TODO: RenderCaps
 
-        template <typename T, uint32_t size = Renderer2DData::MaxQuads>
+        template <typename T, uint32_t size = Renderer2DData::MaxVertices>
         using DataArray = std::array<T, size>;
 
         Renderer2DData();
@@ -145,7 +145,7 @@ private:
         DataArray<LineVertex>::iterator LineVertexBufferPtr{};
         float LineWidth = 2.0f;
         //
-        DataArray<const OpenGLTexture2D*, MaxTextureSlots> TextureSlots;
+        DataArray<const OpenGLTexture2D *, MaxTextureSlots> TextureSlots;
         uint32_t TextureSlotIndex = 1; // 0 = white texture
         //
         glm::vec4 QuadVertexPositions[4];

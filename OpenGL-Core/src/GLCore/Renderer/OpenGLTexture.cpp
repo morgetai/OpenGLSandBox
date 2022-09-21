@@ -20,18 +20,7 @@ OpenGLTexture2D::OpenGLTexture2D(uint32_t width, uint32_t height)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, width, height, 0, m_DataFormat, GL_UNSIGNED_BYTE, nullptr));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-
-    //
-
-    // glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
-    // glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
-
-    // glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
 OpenGLTexture2D::OpenGLTexture2D(const std::string &path)

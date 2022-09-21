@@ -9,9 +9,6 @@
         {"name": "glm"},
         {"name": "imgui", "features": [ "glfw-binding","opengl3-binding" ]},
         {"name": "stb"},
-        {"name": "shaderc"},
-        {"name": "spdlog"},
-        {"name": "spirv-cross"},
-        {"name": "spirv-tools"}
+        {"name": "spdlog"}
     ]
 }

@@ -7,9 +7,8 @@
 
 #include "Core/Application.h"
 
-
-
-namespace GLCore {
+namespace GLCore
+{
 
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
@@ -18,29 +17,29 @@ namespace GLCore {
 
 	void ImGuiLayer::OnAttach()
 	{
-		// Setup Dear ImGui context
+		// Setup ImGui context
 		IMGUI_CHECKVERSION();
 		auto ctx = ImGui::CreateContext();
 		ImGui::SetCurrentContext(ctx);
-		//ImGuiIO& io = ImGui::GetIO();
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-		//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+		// ImGuiIO& io = ImGui::GetIO();
+		// io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+		// io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
-		// Setup Dear ImGui style
+		// Setup ImGui style
 		ImGui::StyleColorsDark();
 
-		//TODO: FIX!
-		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-/* 		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		} */
+		// TODO: FIX!
+		//  When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		/* 		ImGuiStyle& style = ImGui::GetStyle();
+				if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+				{
+					style.WindowRounding = 0.0f;
+					style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+				} */
 
-		Application& app = Application::Get();
-		auto window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
+		Application &app = Application::Get();
+		auto window = static_cast<GLFWwindow *>(app.GetWindow().GetNativeWindow());
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -53,7 +52,7 @@ namespace GLCore {
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-	
+
 	void ImGuiLayer::Begin()
 	{
 		ImGui_ImplOpenGL3_NewFrame();
@@ -63,33 +62,32 @@ namespace GLCore {
 
 	void ImGuiLayer::End()
 	{
-		ImGuiIO& io = ImGui::GetIO();
-		Application& app = Application::Get();
+		ImGuiIO &io = ImGui::GetIO();
+		Application &app = Application::Get();
 		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
 		// Rendering
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-/* 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			//ImGui::UpdatePlatformWindows();
-			//ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		} */
+		/*if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+				{
+					GLFWwindow* backup_current_context = glfwGetCurrentContext();
+					//ImGui::UpdatePlatformWindows();
+					//ImGui::RenderPlatformWindowsDefault();
+					glfwMakeContextCurrent(backup_current_context);
+				} */
 	}
 
-	void ImGuiLayer::OnEvent(Event& event)
+	void ImGuiLayer::OnEvent(Event &event)
 	{
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<MouseButtonPressedEvent>(GLCORE_BIND_EVENT_FN(ImGuiLayer::OnMouseButtonPressed));
 	}
 
-	bool ImGuiLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+	bool ImGuiLayer::OnMouseButtonPressed(MouseButtonPressedEvent &e)
 	{
 		ImGuiIO io = ImGui::GetIO();
 		return io.WantCaptureMouse;
 	}
-
 }

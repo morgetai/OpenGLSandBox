@@ -20,7 +20,8 @@ public:
 	virtual void OnImGuiRender() override;
 private:
 	//GLCore::Utils::Shader* m_Shader;
-	GLCore::Utils::OrthographicCameraController m_CameraController;
+	//GLCore::Utils::OrthographicCameraController<GLCore::Utils::OrthographicCamera> m_CameraController;
+	GLCore::Utils::OrthographicCameraController<GLCore::Utils::ProjectionCamera> m_CameraController;
 	Renderer2D m_renderer;
 	OpenGLTexture2D m_Pic1, m_Pic2;
 	
