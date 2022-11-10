@@ -16,6 +16,8 @@ namespace GLCore::Utils
         void MoveLeft(float move);
         void MoveRight(float move);
 
+        glm::vec3 GetPosition() const { return m_Position;};
+
         void SetDirection(float x_offset, float y_offset);
         void SetAspectRation(float aspect_ratio);
 
@@ -31,7 +33,6 @@ namespace GLCore::Utils
         glm::mat4 m_ProjectionMatrix;
         glm::mat4 m_ViewMatrix;
         glm::mat4 m_ViewProjectionMatrix;
-        glm::vec3 m_orientation;
 
         float m_aspect_ratio{};
         float m_yaw{-90.0f};//x

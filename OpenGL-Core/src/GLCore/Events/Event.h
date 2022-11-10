@@ -2,8 +2,10 @@
 
 #include "Core/Core.h"
 #include <iostream>
-
+#include <utility>
 namespace GLCore {
+
+	#define BIND_EVENT_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
 
 	// Events in Hazel are currently blocking, meaning when an event occurs it
 	// immediately gets dispatched and must be dealt with right then an there.

@@ -4,8 +4,6 @@ project(OpenGlExample
     VERSION 1.0.0 
     LANGUAGES CXX)
 
-find_path(STB_INCLUDE_DIRS "stb_image.h")
-
 set (PROJECT_SOURCES 
     src/ExampleApp.cpp
     src/ExampleLayer.h

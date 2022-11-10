@@ -6,9 +6,12 @@
 
 #include <glfw/glfw3.h>
 
-namespace GLCore {
+namespace 
+{
+	#define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
+}
 
-#define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
+namespace GLCore {
 
 	Application* Application::s_Instance = nullptr;
 
@@ -24,7 +27,7 @@ namespace GLCore {
 		s_Instance = this;
 
 		m_Window = std::unique_ptr<Window>(Window::Create({ name, width, height }));
-		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		m_Window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
 
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
@@ -43,7 +46,7 @@ namespace GLCore {
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowCloseEvent>(std::bind(&Application::OnWindowClose, this, std::placeholders::_1));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); )
 		{

@@ -17,11 +17,15 @@ Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Rend
 											   QuadShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Quad.glsl")),
 											   CircleShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Circle.glsl")),
 											   LineShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Line.glsl")),
-											   CameraUniformBuffer(sizeof(Renderer2D::CameraData), 0, "Camera")
+											   LightShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Light.glsl")),
+											   CameraUniformBuffer(sizeof(Renderer2D::CameraData), 0, "Camera"),
+											   LightVertexBuffer(30 * sizeof(Renderer2D::LightVertex)),
+											   LightUniformBuffer(sizeof(Renderer2D::LightData), 1, "Light")
 {
 	CameraUniformBuffer.Bind(QuadShader.GetRendererID());
 	CameraUniformBuffer.Bind(CircleShader.GetRendererID());
 	CameraUniformBuffer.Bind(LineShader.GetRendererID());
+	LightUniformBuffer.Bind(QuadShader.GetRendererID());
 
 	uint32_t quadIndices[Renderer2D::Renderer2DData::MaxIndices];
 	uint32_t offset{0};
@@ -59,7 +63,8 @@ void Renderer2D::Init()
 												 {ShaderDataType::Float4, "a_Color"},
 												 {ShaderDataType::Float2, "a_TexCoord"},
 												 {ShaderDataType::Float, "a_TexIndex"},
-												 {ShaderDataType::Float, "a_TilingFactor"}});
+												 {ShaderDataType::Float, "a_TilingFactor"},
+												 {ShaderDataType::Float3, "a_Normal"}});
 	m_renderer_data->QuadVertexArray.AddVertexBuffer(m_renderer_data->QuadVertexBuffer);
 
 	// Circles
@@ -76,6 +81,12 @@ void Renderer2D::Init()
 												 {ShaderDataType::Float4, "a_Color"}});
 	m_renderer_data->LineVertexArray.AddVertexBuffer(m_renderer_data->LineVertexBuffer);
 
+	// Light
+	m_renderer_data->LightVertexBuffer.SetLayout({{ShaderDataType::Float3, "a_Position"},
+												  {ShaderDataType::Float3, "a_Color"}});
+	m_renderer_data->LightVertexArray.AddVertexBuffer(m_renderer_data->LightVertexBuffer);
+	m_renderer_data->LightVertexArray.SetIndexBuffer(*m_renderer_data->QuadIndexBuffer);
+
 	// white texture
 	uint32_t whiteTextureData = 0xffffffff;
 	m_renderer_data->WhiteTexture.SetData(&whiteTextureData, sizeof(uint32_t));
@@ -88,10 +99,60 @@ void Renderer2D::Init()
 	m_renderer_data->QuadVertexPositions[2] = {0.5f, 0.5f, 0.0f, 1.0f};
 	m_renderer_data->QuadVertexPositions[3] = {-0.5f, 0.5f, 0.0f, 1.0f};
 
+	m_renderer_data->QuadVertexNormals[0] = {0.0f, 0.0f, 1.0f};
+	m_renderer_data->QuadVertexNormals[1] = {0.0f, 0.0f, 1.0f};
+	m_renderer_data->QuadVertexNormals[2] = {0.0f, 0.0f, 1.0f};
+	m_renderer_data->QuadVertexNormals[3] = {0.0f, 0.0f, 1.0f};
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+glm::vec3 Renderer2D::DrawLight(const glm::vec3 &light_pos, const glm::vec3 &light_color, const float ambient_str)
+{
+	glm::vec3 size{1.f,1.f,1.f};
+
+	std::vector<glm::mat4> sides {glm::translate(glm::mat4(1.0f), light_pos) * glm::scale(glm::mat4(1.0f), size),
+		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y, light_pos.z - size.z}) * glm::scale(glm::mat4(1.0f), size),
+		glm::translate(glm::mat4(1.0f), {light_pos.x - size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+		glm::translate(glm::mat4(1.0f), {light_pos.x + size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y + size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y - size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size)};
+
+	glm::vec3 center{0.0,0.0,0.0};
+	size_t vert = 0;
+	for (size_t i = 0; i < 6; i++)
+	{
+		m_renderer_data->LightBuffer[vert].Position = sides[i] * m_renderer_data->QuadVertexPositions[0];
+		m_renderer_data->LightBuffer[vert++].Color = light_color;
+		m_renderer_data->LightBuffer[vert].Position = sides[i] * m_renderer_data->QuadVertexPositions[1];
+		m_renderer_data->LightBuffer[vert++].Color = light_color;
+		m_renderer_data->LightBuffer[vert].Position = sides[i] * m_renderer_data->QuadVertexPositions[2];
+		m_renderer_data->LightBuffer[vert++].Color = light_color;
+		m_renderer_data->LightBuffer[vert].Position = sides[i] * m_renderer_data->QuadVertexPositions[3];
+		m_renderer_data->LightBuffer[vert++].Color = light_color;
+	}
+
+	for (size_t i = 0; i < 8; i++)
+	{
+		center.x += m_renderer_data->LightBuffer[i].Position.x;
+		center.y += m_renderer_data->LightBuffer[i].Position.y;
+		center.z += m_renderer_data->LightBuffer[i].Position.z;
+	}
+
+	center.x = center.x /8.f; 
+	center.y = center.y /8.f; 
+	center.z = center.z /8.f; 
+	
+
+	m_renderer_data->LightVertexBuffer.SetData(m_renderer_data->LightBuffer.data(), sizeof(Renderer2D::LightVertex) * m_renderer_data->LightBuffer.size());
+
+	m_renderer_data->LightShader.Bind();
+	DrawIndexed(m_renderer_data->LightVertexArray, 6 * QUAD_INDICES);
+
+	return center;
 }
 
 void Renderer2D::Shutdown()
@@ -109,13 +170,22 @@ void Renderer2D::Shutdown()
 	StartBatch();
 } */
 
-void Renderer2D::BeginScene(const glm::mat4 &viewproj, const glm::mat4 &transform)
+void Renderer2D::BeginScene(const glm::vec3& camera_pos,const glm::mat4 &viewproj, const glm::mat4 &transform,
+							const glm::vec3 &light_pos, const glm::vec3 &light_color, const float ambient_str)
 {
-
 	m_renderer_data->CameraBuffer.ViewProjection = viewproj;
+	m_renderer_data->CameraBuffer.Model = glm::inverse(transform);
+	m_renderer_data->CameraBuffer.Position = camera_pos;
 	m_renderer_data->CameraUniformBuffer.SetData(&m_renderer_data->CameraBuffer, sizeof(Renderer2D::CameraData));
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	auto center = DrawLight(light_pos, light_color, ambient_str);
+	m_renderer_data->Light.AmbientStr = ambient_str;
+	m_renderer_data->Light.LightColor = light_color;
+	m_renderer_data->Light.LightPos = center;
+	m_renderer_data->Light.SpecularStrength = 0.5f;
+	m_renderer_data->LightUniformBuffer.SetData(&m_renderer_data->Light, sizeof(Renderer2D::LightData));
 
 	StartBatch();
 }
@@ -235,6 +305,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, in
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		m_renderer_data->QuadVertexBufferPtr->Normal = m_renderer_data->QuadVertexNormals[i];
 		// m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
@@ -278,7 +349,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &tex
 		m_renderer_data->QuadVertexBufferPtr->TexCoord = textureCoords[i];
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
-		// m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
+		m_renderer_data->QuadVertexBufferPtr->Normal = m_renderer_data->QuadVertexNormals[i];
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 

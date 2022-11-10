@@ -15,7 +15,8 @@ public:
     void Init();
     void Shutdown();
 
-    void BeginScene(const glm::mat4 &viewproj, const glm::mat4 &transform);
+    void BeginScene(const glm::vec3& camera_pos, const glm::mat4 &viewproj, const glm::mat4 &transform, 
+        const glm::vec3& light_pos, const glm::vec3& light_color, float ambient_str);
 
     void EndScene();
     void Flush();
@@ -31,8 +32,8 @@ public:
 
     void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color);
     void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3& rotation, const glm::vec4 &color);
-    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3& rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const glm::vec4 &color);
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
 
     void DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
     void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
@@ -70,6 +71,21 @@ public:
 private:
     void DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t indexCount = 0);
     void DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount);
+    glm::vec3 DrawLight(const glm::vec3& light_pos, const glm::vec3& light_color, float ambient_str);
+
+    struct LightVertex
+    {
+        glm::vec3 Position;
+        glm::vec3 Color;
+    };
+
+    struct LightData
+    {
+        glm::vec3 LightPos;
+        glm::vec3 LightColor;
+        float AmbientStr;
+        float SpecularStrength;
+    };
 
     struct QuadVertex
     {
@@ -78,8 +94,7 @@ private:
         glm::vec2 TexCoord;
         float TexIndex;
         float TilingFactor;
-
-        // Editor-only
+        glm::vec3 Normal;
     };
 
     struct CircleVertex
@@ -89,8 +104,6 @@ private:
         glm::vec4 Color;
         float Thickness;
         float Fade;
-
-        // Editor-only
     };
 
     struct LineVertex
@@ -104,6 +117,8 @@ private:
     struct CameraData
     {
         glm::mat4 ViewProjection;
+        glm::mat4 Model;
+        glm::vec3 Position;
     };
 
     struct Renderer2DData
@@ -149,10 +164,18 @@ private:
         uint32_t TextureSlotIndex = 1; // 0 = white texture
         //
         glm::vec4 QuadVertexPositions[4];
+        glm::vec3 QuadVertexNormals[4];
         //
         Renderer2D::Statistics Stats;
         CameraData CameraBuffer;
         GLUniformBlock CameraUniformBuffer;
+        //
+        OpenGLVertexArray LightVertexArray;
+        OpenGLVertexBuffer LightVertexBuffer;
+        GLCore::Utils::OpenGLShader LightShader;
+        GLUniformBlock LightUniformBuffer;
+        DataArray<LightVertex, 24> LightBuffer;
+        LightData Light;
     };
 
     std::unique_ptr<Renderer2DData> m_renderer_data;

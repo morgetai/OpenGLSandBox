@@ -34,6 +34,7 @@ set (PROJECT_SOURCES
     src/GLCore/Core/Window.h
     src/GLCore/Core/Timer.h
     src/GLCore/Core/MyAssert.h
+    src/GLCore/Core/MouseCodes.h
     #events
     src/GLCore/Events/ApplicationEvent.h
     src/GLCore/Events/Event.h
@@ -49,7 +50,10 @@ set (PROJECT_SOURCES
     src/GLCore/Util/ProjectionCamera.h
     src/GLCore/Util/OrthographicCamera.cpp
     src/GLCore/Util/OrthographicCamera.h
-    src/GLCore/Util/OrthographicCameraController.h
+    src/GLCore/Util/EditorCamera.h
+    src/GLCore/Util/EditorCamera.cpp
+    src/GLCore/Util/CameraController.h
+    src/GLCore/Util/CameraController.cpp
     #Renderer
     src/GLCore/Renderer/Shader.cpp
     src/GLCore/Renderer/Shader.h
@@ -57,6 +61,8 @@ set (PROJECT_SOURCES
     src/GLCore/Renderer/OpenGLTexture.cpp
     src/GLCore/Renderer/Renderer2D.cpp
     src/GLCore/Renderer/Renderer2D.h
+    src/GLCore/Renderer/Renderer3D.h
+    src/GLCore/Renderer/Renderer3D.cpp
     src/GLCore/Renderer/VertexArray.h
     src/GLCore/Renderer/VertexArray.cpp
     src/GLCore/Renderer/VertexBuffer.h
@@ -90,9 +96,12 @@ target_include_directories(${PROJECT_NAME}
 PUBLIC 
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore"
+    ${STB_INCLUDE_DIRS}
 PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore/Core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore/Events"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GLCore/ImGui"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/Windows"
-    ${STB_INCLUDE_DIRS}  )
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/Windows")
+
+#add_custom_command(TARGET ${PROJECT_NAME} 
+#    COMMAND ${CMAKE_COMMAND}  ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/assets/shaders/" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/shaders/")
