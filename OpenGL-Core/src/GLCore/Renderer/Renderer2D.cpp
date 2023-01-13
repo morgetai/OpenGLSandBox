@@ -8,6 +8,14 @@ namespace
 {
 	constexpr uint32_t QUAD_INDICES = 6;
 	constexpr uint32_t QUAD_VERTICES = 4;
+
+	template <class... Ts>
+	struct overloaded : Ts...
+	{
+		using Ts::operator()...;
+	};
+	template <class... Ts>
+	overloaded(Ts...) -> overloaded<Ts...>;
 }
 
 Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Renderer2DData::MaxVertices * sizeof(Renderer2D::QuadVertex)),
@@ -19,8 +27,8 @@ Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Rend
 											   LineShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Line.glsl")),
 											   LightShader(GLCore::Utils::OpenGLShader("assets/shaders/Renderer2D_Light.glsl")),
 											   CameraUniformBuffer(sizeof(Renderer2D::CameraData), 0, "Camera"),
-											   LightVertexBuffer(30 * sizeof(Renderer2D::LightVertex)),
-											   LightUniformBuffer(sizeof(Renderer2D::LightData), 1, "Light")
+											   LightVertexBuffer(30 * sizeof(LightVertex)),
+											   LightUniformBuffer(sizeof(LightData), 1, "Light")
 {
 	CameraUniformBuffer.Bind(QuadShader.GetRendererID());
 	CameraUniformBuffer.Bind(CircleShader.GetRendererID());
@@ -31,13 +39,13 @@ Renderer2D::Renderer2DData::Renderer2DData() : QuadVertexBuffer(Renderer2D::Rend
 	uint32_t offset{0};
 	for (uint32_t i = 0; i < Renderer2D::Renderer2DData::MaxIndices; i += QUAD_INDICES)
 	{
-		quadIndices[i + 0] = offset + 0;
+		quadIndices[i] = offset;
 		quadIndices[i + 1] = offset + 1;
 		quadIndices[i + 2] = offset + 2;
 
 		quadIndices[i + 3] = offset + 2;
 		quadIndices[i + 4] = offset + 3;
-		quadIndices[i + 5] = offset + 0;
+		quadIndices[i + 5] = offset;
 
 		offset += QUAD_VERTICES;
 	}
@@ -110,18 +118,49 @@ void Renderer2D::Init()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+void Renderer2D::DrawGeometry(const Geometry::GeometryObj &obj)
+{
+	std::visit(overloaded{[this](const Geometry::Rect &arg)
+						  { this->DrawRect(arg.position, arg.size, arg.color); },
+						  [this](const Geometry::Line &arg)
+						  { this->DrawLine(arg.p0, arg.p1, arg.color); },
+						  [this](const Geometry::Quad &arg)
+						  { this->DrawRotatedQuad(arg.position, arg.size, arg.rotation, arg.color); },
+						  [this](const Geometry::Cube &arg)
+						  { this->DrawRotatedCube(arg.position, arg.size, arg.rotation, arg.color); },
+						  [this](const Geometry::Circle &arg)
+						  { this->DrawCircle(arg.position, arg.radius, arg.color); }},
+			   obj);
+}
+
+void Renderer2D::DrawGeometry(const Geometry::GeometryObj &obj,
+							  const OpenGLTexture2D &texture)
+{
+	std::visit(overloaded{[this](const Geometry::Rect &arg)
+						  { ; },
+						  [this](const Geometry::Line &arg)
+						  { ; },
+						  [this](const Geometry::Circle &arg)
+						  { ; },
+						  [this, texture](const Geometry::Quad &arg)
+						  { this->DrawRotatedQuad(arg.position, arg.size, arg.rotation, texture); },
+						  [this, texture](const Geometry::Cube &arg)
+						  { this->DrawRotatedCube(arg.position, arg.size, arg.rotation, texture); }},
+			   obj);
+}
+
 glm::vec3 Renderer2D::DrawLight(const glm::vec3 &light_pos, const glm::vec3 &light_color, const float ambient_str)
 {
-	glm::vec3 size{1.f,1.f,1.f};
+	glm::vec3 size{1.f, 1.f, 1.f};
 
-	std::vector<glm::mat4> sides {glm::translate(glm::mat4(1.0f), light_pos) * glm::scale(glm::mat4(1.0f), size),
-		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y, light_pos.z - size.z}) * glm::scale(glm::mat4(1.0f), size),
-		glm::translate(glm::mat4(1.0f), {light_pos.x - size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
-		glm::translate(glm::mat4(1.0f), {light_pos.x + size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
-		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y + size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
-		glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y - size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size)};
+	std::vector<glm::mat4> sides{glm::translate(glm::mat4(1.0f), light_pos) * glm::scale(glm::mat4(1.0f), size),
+								 glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y, light_pos.z - size.z}) * glm::scale(glm::mat4(1.0f), size),
+								 glm::translate(glm::mat4(1.0f), {light_pos.x - size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+								 glm::translate(glm::mat4(1.0f), {light_pos.x + size.x * 0.5, light_pos.y, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {0.0f, 1.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+								 glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y + size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size),
+								 glm::translate(glm::mat4(1.0f), {light_pos.x, light_pos.y - size.y * 0.5, light_pos.z - size.z * 0.5}) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f}) * glm::scale(glm::mat4(1.0f), size)};
 
-	glm::vec3 center{0.0,0.0,0.0};
+	glm::vec3 center{0.0, 0.0, 0.0};
 	size_t vert = 0;
 	for (size_t i = 0; i < 6; i++)
 	{
@@ -142,12 +181,11 @@ glm::vec3 Renderer2D::DrawLight(const glm::vec3 &light_pos, const glm::vec3 &lig
 		center.z += m_renderer_data->LightBuffer[i].Position.z;
 	}
 
-	center.x = center.x /8.f; 
-	center.y = center.y /8.f; 
-	center.z = center.z /8.f; 
-	
+	center.x = center.x / 8.f;
+	center.y = center.y / 8.f;
+	center.z = center.z / 8.f;
 
-	m_renderer_data->LightVertexBuffer.SetData(m_renderer_data->LightBuffer.data(), sizeof(Renderer2D::LightVertex) * m_renderer_data->LightBuffer.size());
+	m_renderer_data->LightVertexBuffer.SetData(m_renderer_data->LightBuffer.data(), sizeof(LightVertex) * m_renderer_data->LightBuffer.size());
 
 	m_renderer_data->LightShader.Bind();
 	DrawIndexed(m_renderer_data->LightVertexArray, 6 * QUAD_INDICES);
@@ -157,20 +195,9 @@ glm::vec3 Renderer2D::DrawLight(const glm::vec3 &light_pos, const glm::vec3 &lig
 
 void Renderer2D::Shutdown()
 {
-
-	// delete[] m_renderer_data->QuadVertexBufferBase;
 }
 
-/* void Renderer2D::BeginScene(const OrthographicCamera &camera)
-{
-
-	m_renderer_data->CameraBuffer.ViewProjection = camera.GetViewProjectionMatrix();
-	m_renderer_data->CameraUniformBuffer->SetData(&m_renderer_data->CameraBuffer, sizeof(Renderer2DData::CameraData));
-
-	StartBatch();
-} */
-
-void Renderer2D::BeginScene(const glm::vec3& camera_pos,const glm::mat4 &viewproj, const glm::mat4 &transform,
+void Renderer2D::BeginScene(const glm::vec3 &camera_pos, const glm::mat4 &viewproj, const glm::mat4 &transform,
 							const glm::vec3 &light_pos, const glm::vec3 &light_color, const float ambient_str)
 {
 	m_renderer_data->CameraBuffer.ViewProjection = viewproj;
@@ -185,19 +212,10 @@ void Renderer2D::BeginScene(const glm::vec3& camera_pos,const glm::mat4 &viewpro
 	m_renderer_data->Light.LightColor = light_color;
 	m_renderer_data->Light.LightPos = center;
 	m_renderer_data->Light.SpecularStrength = 0.5f;
-	m_renderer_data->LightUniformBuffer.SetData(&m_renderer_data->Light, sizeof(Renderer2D::LightData));
+	m_renderer_data->LightUniformBuffer.SetData(&m_renderer_data->Light, sizeof(LightData));
 
 	StartBatch();
 }
-
-/* void Renderer2D::BeginScene(const EditorCamera &camera)
-{
-
-	m_renderer_data->CameraBuffer.ViewProjection = camera.GetViewProjection();
-	m_renderer_data->CameraUniformBuffer->SetData(&m_renderer_data->CameraBuffer, sizeof(Renderer2DData::CameraData));
-
-	StartBatch();
-} */
 
 void Renderer2D::EndScene()
 {
@@ -265,21 +283,11 @@ void Renderer2D::NextBatch()
 	StartBatch();
 }
 
-void Renderer2D::DrawQuad(const glm::vec2 &position, const glm::vec2 &size, const glm::vec4 &color)
-{
-	DrawQuad({position.x, position.y, 0.0f}, size, color);
-}
-
 void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color)
 {
 	glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
 
 	DrawQuad(transform, color);
-}
-
-void Renderer2D::DrawQuad(const glm::vec2 &position, const glm::vec2 &size, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
-{
-	DrawQuad({position.x, position.y, 0.0f}, size, texture, tilingFactor, tintColor);
 }
 
 void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
@@ -289,7 +297,7 @@ void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size, cons
 	DrawQuad(transform, texture, tilingFactor, tintColor);
 }
 
-void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, int entityID)
+void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color)
 {
 	const float textureIndex = 0.0f; // White Texture
 	constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
@@ -306,7 +314,6 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, in
 		m_renderer_data->QuadVertexBufferPtr->TexIndex = textureIndex;
 		m_renderer_data->QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		m_renderer_data->QuadVertexBufferPtr->Normal = m_renderer_data->QuadVertexNormals[i];
-		// m_renderer_data->QuadVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->QuadVertexBufferPtr++;
 	}
 
@@ -315,7 +322,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, in
 	m_renderer_data->Stats.QuadCount++;
 }
 
-void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor, int entityID)
+void Renderer2D::DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
 {
 	constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
 
@@ -436,22 +443,12 @@ void Renderer2D::DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &siz
 	DrawQuad(all_axis_rot * bottom, texture, tilingFactor, tintColor);
 }
 
-void Renderer2D::DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color)
-{
-	DrawRotatedQuad({position.x, position.y, 0.0f}, size, rotation, color);
-}
-
 void Renderer2D::DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color)
 {
 
 	glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::rotate(glm::mat4(1.0f), glm::radians(rotation), {0.0f, 0.0f, 1.0f}) * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
 
 	DrawQuad(transform, color);
-}
-
-void Renderer2D::DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
-{
-	DrawRotatedQuad({position.x, position.y, 0.0f}, size, rotation, texture, tilingFactor, tintColor);
 }
 
 void Renderer2D::DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const OpenGLTexture2D &texture, float tilingFactor, const glm::vec4 &tintColor)
@@ -462,76 +459,67 @@ void Renderer2D::DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &siz
 	DrawQuad(transform, texture, tilingFactor, tintColor);
 }
 
-void Renderer2D::DrawCircle(const glm::mat4 &transform, const glm::vec4 &color, float thickness /*= 1.0f*/, float fade /*= 0.005f*/, int entityID /*= -1*/)
+void Renderer2D::DrawCircle(const glm::vec3 &position,const float radius, const glm::vec4 &color, float thickness /*= 1.0f*/, float fade /*= 0.005f*/)
 {
 
 	// TODO: implement for circles
 	// if (m_renderer_data->QuadIndexCount >= Renderer2DData::MaxIndices)
 	// 	NextBatch();
 
-	for (size_t i = 0; i < 4; i++)
+	glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), {radius, radius, 1.0f});
+
+	for (size_t i = 0; i < QUAD_VERTICES; i++)
 	{
 		m_renderer_data->CircleVertexBufferPtr->WorldPosition = transform * m_renderer_data->QuadVertexPositions[i];
-		m_renderer_data->CircleVertexBufferPtr->LocalPosition = m_renderer_data->QuadVertexPositions[i] * 2.0f;
+		m_renderer_data->CircleVertexBufferPtr->LocalPosition = m_renderer_data->QuadVertexPositions[i] *2.f;
 		m_renderer_data->CircleVertexBufferPtr->Color = color;
 		m_renderer_data->CircleVertexBufferPtr->Thickness = thickness;
 		m_renderer_data->CircleVertexBufferPtr->Fade = fade;
-		// m_renderer_data->CircleVertexBufferPtr->EntityID = entityID;
 		m_renderer_data->CircleVertexBufferPtr++;
 	}
 
-	m_renderer_data->CircleIndexCount += 6;
+	m_renderer_data->CircleIndexCount += QUAD_INDICES;
 
 	m_renderer_data->Stats.QuadCount++;
 }
 
-void Renderer2D::DrawLine(const glm::vec3 &p0, glm::vec3 &p1, const glm::vec4 &color, int entityID)
+void Renderer2D::DrawLine(const glm::vec3 &p0, const glm::vec3 &p1, const glm::vec4 &color)
 {
 	m_renderer_data->LineVertexBufferPtr->Position = p0;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	// m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexBufferPtr->Position = p1;
 	m_renderer_data->LineVertexBufferPtr->Color = color;
-	// m_renderer_data->LineVertexBufferPtr->EntityID = entityID;
 	m_renderer_data->LineVertexBufferPtr++;
 
 	m_renderer_data->LineVertexCount += 2;
 }
 
-void Renderer2D::DrawRect(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, int entityID)
+void Renderer2D::DrawRect(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color)
 {
 	glm::vec3 p0 = glm::vec3(position.x - size.x * 0.5f, position.y - size.y * 0.5f, position.z);
 	glm::vec3 p1 = glm::vec3(position.x + size.x * 0.5f, position.y - size.y * 0.5f, position.z);
 	glm::vec3 p2 = glm::vec3(position.x + size.x * 0.5f, position.y + size.y * 0.5f, position.z);
 	glm::vec3 p3 = glm::vec3(position.x - size.x * 0.5f, position.y + size.y * 0.5f, position.z);
 
-	DrawLine(p0, p1, color, entityID);
-	DrawLine(p1, p2, color, entityID);
-	DrawLine(p2, p3, color, entityID);
-	DrawLine(p3, p0, color, entityID);
+	DrawLine(p0, p1, color);
+	DrawLine(p1, p2, color);
+	DrawLine(p2, p3, color);
+	DrawLine(p3, p0, color);
 }
 
-void Renderer2D::DrawRect(const glm::mat4 &transform, const glm::vec4 &color, int entityID)
+void Renderer2D::DrawRect(const glm::mat4 &transform, const glm::vec4 &color)
 {
 	glm::vec3 lineVertices[4];
 	for (size_t i = 0; i < 4; i++)
 		lineVertices[i] = transform * m_renderer_data->QuadVertexPositions[i];
 
-	DrawLine(lineVertices[0], lineVertices[1], color, entityID);
-	DrawLine(lineVertices[1], lineVertices[2], color, entityID);
-	DrawLine(lineVertices[2], lineVertices[3], color, entityID);
-	DrawLine(lineVertices[3], lineVertices[0], color, entityID);
+	DrawLine(lineVertices[0], lineVertices[1], color);
+	DrawLine(lineVertices[1], lineVertices[2], color);
+	DrawLine(lineVertices[2], lineVertices[3], color);
+	DrawLine(lineVertices[3], lineVertices[0], color);
 }
-
-/* void Renderer2D::DrawSprite(const glm::mat4 &transform, SpriteRendererComponent &src, int entityID)
-{
-	if (src.Texture)
-		DrawQuad(transform, src.Texture, src.TilingFactor, src.Color, entityID);
-	else
-		DrawQuad(transform, src.Color, entityID);
-} */
 
 float Renderer2D::GetLineWidth()
 {

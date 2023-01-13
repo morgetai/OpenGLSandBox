@@ -1,15 +1,8 @@
 #include "Application.h"
-
 #include "Log.h"
-
 #include "Input.h"
 
 #include <glfw/glfw3.h>
-
-namespace 
-{
-	#define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
-}
 
 namespace GLCore {
 
@@ -27,7 +20,9 @@ namespace GLCore {
 		s_Instance = this;
 
 		m_Window = std::unique_ptr<Window>(Window::Create({ name, width, height }));
-		m_Window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
+		m_Window->SetEventCallback([this](auto& e){
+			this->OnEvent(e);
+		});
 
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
@@ -46,7 +41,9 @@ namespace GLCore {
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(std::bind(&Application::OnWindowClose, this, std::placeholders::_1));
+		dispatcher.Dispatch<WindowCloseEvent>([this](auto& e) -> bool{
+			return this->OnWindowClose(e);
+		});
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); )
 		{

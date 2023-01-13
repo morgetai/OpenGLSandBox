@@ -2,6 +2,7 @@
 #include <Util/OpenGLDebug.h>
 #include <GLCore/Events/KeyEvent.h>
 #include <GLCore/Core/KeyCodes.h>
+#include <Renderer/Geometry.h>
 
 #include <imgui.h>
 #include <glm/glm.hpp>
@@ -103,15 +104,23 @@ void ExampleLayer::OnUpdate(Timestep ts)
 
 		m_renderer.DrawCube({3.f, 5.f, 3.5f}, {1.0f, 1.0f, 1.0f}, lightColor);*/
 
-	for (float y = -5.0f; y < 5.0f; y += 0.25f)
-	{
-		for (float x = -5.0f; x < 5.0f; x += 0.25f)
-		{
-			// glm::vec4 color{(x + 10) / 20.0f, 0.2f, (y + 10) / 20.0f, 1.0f};
-			glm::vec4 color{1.0f, 0.5f, 0.31f, 1.0};
-			m_renderer.DrawCube({x, y, 0.f}, {0.2f, 0.2f, 0.2f}, color);
-		}
-	}
+	// for (float y = -5.0f; y < 5.0f; y += 0.25f)
+	// {
+	// 	for (float x = -5.0f; x < 5.0f; x += 0.25f)
+	// 	{
+	// 		glm::vec4 color{1.0f, 0.5f, 0.31f, 1.0};
+	// 		Geometry::Cube cube {{x, y, 0.f}, {0.2f, 0.2f, 0.2f}, color};
+	// 		m_renderer.DrawGeometry(cube);
+	// 	}
+	// }
+
+	Geometry::Line line {{0.5, 0.5, 0.f}, {0.8f, 0.7f, 0.f}, {0.23f, 0.45, 0.11,1.f}};
+
+	m_renderer.DrawGeometry(line);
+
+	Geometry::Circle circle{{0.5, 0.5, 0.f}, 2, {0.23f, 0.45, 0.11,1.f}};
+
+	m_renderer.DrawGeometry(circle);
 
 	rotate += rotate_step;
 

@@ -84,22 +84,27 @@ layout (location = 11) flat in float v_SpecularStrength;
 
 uniform sampler2D u_Textures[16];
 
+vec3 CalculateFongLight(in vec3 normal,in vec3 ligt_pos,in vec3 camera_pos,in vec3 world_pos,in vec3 light_color,in float amb_str,in float spec_str)
+{
+	vec3 normalized_normal = normalize(normal);
+	vec3 light_dir = normalize(ligt_pos - world_pos);
+	vec3 viewDir = normalize(camera_pos - world_pos);
+	vec3 reflectDir = reflect(-light_dir, normalized_normal);
+	//
+	vec3 ambient = amb_str * light_color;
+	//
+	float diff = max(dot(normalized_normal, light_dir), 0.0);
+    vec3 diffuse = diff * light_color;
+	//
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specular = spec_str * spec * light_color;   
+	//
+	return (ambient + diffuse + specular);
+}	
+
 void main()
 {
-	//
-	vec3 norm = normalize(v_Output.Normal);
-	vec3 light_dir = normalize(v_LightPos - v_Output.WorlPos);
-	//
-	vec3 ambient = v_AmbientStr * v_LightColor;
-	float diff = max(dot(norm, light_dir), 0.0);
-    vec3 diffuse = diff * v_LightColor;
-	//
-	vec3 viewDir = normalize(v_CameraPos - v_Output.WorlPos);
-	vec3 reflectDir = reflect(-light_dir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = v_SpecularStrength * spec * v_LightColor;   
-	//
-	vec3 fong_light = ambient + diffuse + specular;
+	vec3 fong_light = CalculateFongLight(v_Output.Normal, v_LightPos, v_CameraPos, v_Output.WorlPos, v_LightColor, v_AmbientStr, v_SpecularStrength);
 	vec4 texColor = vec4(fong_light,1.0) * v_Output.Color;
 
 	switch(int(v_TexIndex))

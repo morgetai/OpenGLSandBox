@@ -50,7 +50,7 @@ layout (location = 0) in VertexOutput v_Output;
 void main()
 {
     // Calculate distance and fill circle with white
-    float distance = 1.0 - length(v_Output.LocalPosition);
+    float distance = length(v_Output.LocalPosition);
     float circle = smoothstep(0.0, v_Output.Fade, distance);
     circle *= smoothstep(v_Output.Thickness + v_Output.Fade, v_Output.Thickness, distance);
 

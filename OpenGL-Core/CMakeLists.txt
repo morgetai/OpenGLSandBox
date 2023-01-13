@@ -61,8 +61,6 @@ set (PROJECT_SOURCES
     src/GLCore/Renderer/OpenGLTexture.cpp
     src/GLCore/Renderer/Renderer2D.cpp
     src/GLCore/Renderer/Renderer2D.h
-    src/GLCore/Renderer/Renderer3D.h
-    src/GLCore/Renderer/Renderer3D.cpp
     src/GLCore/Renderer/VertexArray.h
     src/GLCore/Renderer/VertexArray.cpp
     src/GLCore/Renderer/VertexBuffer.h
@@ -71,6 +69,8 @@ set (PROJECT_SOURCES
     src/GLCore/Renderer/Buffer.cpp
     src/GLCore/Renderer/UniformBuffer.h
     src/GLCore/Renderer/UniformBuffer.cpp
+    src/GLCore/Renderer/Light.h
+    src/GLCore/Renderer/Geometry.h
     #platform
     src/Platform/Windows/WindowsInput.cpp
     src/Platform/Windows/WindowsInput.h

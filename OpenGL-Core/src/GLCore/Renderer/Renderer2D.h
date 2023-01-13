@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Util/OrthographicCamera.h"
 #include "Renderer/OpenGLTexture.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Shader.h"
 #include "Renderer/UniformBuffer.h"
+#include "Renderer/Light.h"
+#include "Renderer/Geometry.h"
 #include <glm/glm.hpp>
 #include <array>
 #include <memory>
@@ -21,31 +22,9 @@ public:
     void EndScene();
     void Flush();
 
-    // Primitives
-    void DrawQuad(const glm::vec2 &position, const glm::vec2 &size, const glm::vec4 &color);
-    void DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color);
-    void DrawQuad(const glm::vec2 &position, const glm::vec2 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-    void DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-
-    void DrawQuad(const glm::mat4 &transform, const glm::vec4 &color, int entityID = -1);
-    void DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f), int entityID = -1);
-
-    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color);
-    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const glm::vec4 &color);
-    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-
-    void DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
-    void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
-    void DrawRotatedQuad(const glm::vec2 &position, const glm::vec2 &size, float rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-    void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
-
-    void DrawCircle(const glm::mat4 &transform, const glm::vec4 &color, float thickness = 1.0f, float fade = 0.005f, int entityID = -1);
-
-    void DrawLine(const glm::vec3 &p0, glm::vec3 &p1, const glm::vec4 &color, int entityID = -1);
-
-    void DrawRect(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, int entityID = -1);
-    void DrawRect(const glm::mat4 &transform, const glm::vec4 &color, int entityID = -1);
+    //draw functions
+    void DrawGeometry(const Geometry::GeometryObj& obj);
+    void DrawGeometry(const Geometry::GeometryObj& obj, const OpenGLTexture2D &texture);
 
     float GetLineWidth();
     void SetLineWidth(float width);
@@ -69,23 +48,30 @@ public:
     Statistics GetStats();
 
 private:
+    // Primitives
+    void DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color);
+    void DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    void DrawQuad(const glm::mat4 &transform, const glm::vec4 &color);
+    void DrawQuad(const glm::mat4 &transform, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const glm::vec4 &color);
+    void DrawRotatedQuad(const glm::vec3 &position, const glm::vec2 &size, float rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    //
+    void DrawCircle(const glm::vec3 &position,const float radius, const glm::vec4 &color, float thickness = 1.0f, float fade = 0.005f);
+    //
+    void DrawLine(const glm::vec3 &p0, const glm::vec3 &p1, const glm::vec4 &color);
+    //
+    void DrawRect(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color);
+    void DrawRect(const glm::mat4 &transform, const glm::vec4 &color);
+    //
+    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color);
+    void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const glm::vec4 &color);
+    void DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec3 &rotation, const OpenGLTexture2D &texture, float tilingFactor = 1.0f, const glm::vec4 &tintColor = glm::vec4(1.0f));
+    //base draw functions
     void DrawIndexed(const OpenGLVertexArray &vertexArray, uint32_t indexCount = 0);
     void DrawLines(const OpenGLVertexArray &vertexArray, uint32_t vertexCount);
+    //lightning
     glm::vec3 DrawLight(const glm::vec3& light_pos, const glm::vec3& light_color, float ambient_str);
-
-    struct LightVertex
-    {
-        glm::vec3 Position;
-        glm::vec3 Color;
-    };
-
-    struct LightData
-    {
-        glm::vec3 LightPos;
-        glm::vec3 LightColor;
-        float AmbientStr;
-        float SpecularStrength;
-    };
 
     struct QuadVertex
     {
@@ -110,8 +96,6 @@ private:
     {
         glm::vec3 Position;
         glm::vec4 Color;
-
-        // Editor-only
     };
 
     struct CameraData
